@@ -7,17 +7,20 @@ namespace NxtExchange
     public class NxtWalletDb
     {
         private readonly string filepath;
-        private string encryptionKey;
 
-        public NxtWalletDb(string filepath, string encryptionKey)
+        public NxtWalletDb(string filePath)
         {
-            this.filepath = filepath;
-            this.encryptionKey = encryptionKey;
+            this.filepath = filePath;
+        }
+
+        public bool FileExists()
+        {
+            return File.Exists(filepath);
         }
 
         public void InitNewDb(NxtAccount mainAccount, ulong lastBlockId)
         {
-            if (File.Exists(filepath))
+            if (FileExists())
             {
                 return;
             }
@@ -175,12 +178,7 @@ namespace NxtExchange
 
         private SqliteConnection OpenNewDbConnection()
         {
-            return OpenNewDbConnection(encryptionKey);
-        }
-
-        private SqliteConnection OpenNewDbConnection(string key)
-        {
-            var dbConnection = new SqliteConnection($"Data Source={filepath};Version=3;Password={key}");
+            var dbConnection = new SqliteConnection($"Data Source={filepath}");
             dbConnection.Open();
             return dbConnection;
         }
