@@ -25,6 +25,12 @@ namespace NxtExchange
                 return;
             }
 
+            var folder = Path.GetDirectoryName(filepath);
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+
             using (var dbConnection = OpenNewDbConnection())
             {
                 const string createAccountSql = "CREATE TABLE account (id INTEGER PRIMARY KEY, secret_phrase TEXT, address TEXT, main_account INTEGER)";
