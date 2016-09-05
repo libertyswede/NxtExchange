@@ -1,88 +1,62 @@
 using System;
 using System.Threading.Tasks;
-using NxtLib;
-using NxtLib.Blocks;
-using NxtLib.ServerInfo;
 
 namespace NxtExchange
 {
     public class ConsoleExchange
     {
-        private readonly NxtWalletDb wallet;
-        private readonly ServiceFactory serviceFactory;
-        private readonly IBlockService blockService;
-        private readonly IServerInfoService serverInfoService;
+        private readonly NxtConnector connector;
 
-        public ConsoleExchange(string nxtServerUri, string walletfile, string mainAccountSecretPhrase)
+        public ConsoleExchange(NxtConnector connector)
         {
-            serviceFactory = new ServiceFactory(nxtServerUri);
-            blockService = serviceFactory.CreateBlockService();
-            serverInfoService = serviceFactory.CreateServerInfoService();
-
-            wallet = InitWallet(walletfile, mainAccountSecretPhrase);
-        }
-
-        private NxtWalletDb InitWallet(string walletfile, string mainAccountSecretPhrase)
-        {
-            var wallet = new NxtWalletDb(walletfile);
-
-            if (wallet.IsInitialized())
-            {
-                return wallet;
-            }
-
-            var accountService = new NxtLib.Local.LocalAccountService();
-            var account = accountService.GetAccount(NxtLib.Accounts.AccountIdLocator.BySecretPhrase(mainAccountSecretPhrase));
-            var mainAccount = new NxtAccount
-            {
-                Address = account.AccountRs,
-                SecretPhrase = mainAccountSecretPhrase,
-                IsMainAccount = true
-            };
-            var blockchainStatus = serverInfoService.GetBlockchainStatus().Result;
-            wallet.Init(mainAccount, blockchainStatus.LastBlockId);
-            return wallet;
+            this.connector = connector;
         }
 
         public async Task Run()
         {
-            Console.WriteLine("Boot phase");
+            Console.WriteLine("Welcome to the Nxt Exchange Integration Program!");
+            await WriteMenu();
+        }
 
-            var lastBlockId = wallet.GetLastBlockId();
-            int lastBlockHeight = 0;
-            try
+        private async Task WriteMenu()
+        {
+            var done = false;
+            while (!done)
             {
-                var block = await blockService.GetBlock(BlockLocator.ByBlockId(lastBlockId));
-                lastBlockHeight = block.Height;
-                Console.WriteLine($"Last block id {lastBlockId} is on height {lastBlockHeight}");
-            }
-            catch (NxtException e)
-            {
-                if (e.Message == "Unknown block")
+                Console.WriteLine();
+                Console.WriteLine("1) Check For Incoming Transactions");
+                Console.WriteLine("2) Add Account");
+                Console.WriteLine("3) Quit");
+                Console.Write("> ");
+
+                var value = int.Parse(Console.ReadLine());
+                Console.WriteLine();
+
+                switch (value)
                 {
-                    Console.WriteLine($"Fork detected, unable to find block with id: {lastBlockId}. Manual rollback is needed!");
-                    Environment.Exit(-1);
-                }
-                else
-                {
-                    throw;
+                    case 1:
+                        await WriteCheckIncomingTransactions();
+                        break;
+                    case 2:
+                        await WriteAddAccount();
+                        break;
+                    default:
+                        done = true;
+                        break;
                 }
             }
+            Console.WriteLine("Cya!");
+        }
 
-            var blockchainStatus = await serverInfoService.GetBlockchainStatus();
-            var currentBlockHeight = blockchainStatus.NumberOfBlocks - 1;
-            var blocksToProcess = currentBlockHeight - lastBlockHeight;
-            Console.WriteLine($"Current block height is: {currentBlockHeight} ({blocksToProcess} blocks to process)");
+        private async Task WriteCheckIncomingTransactions()
+        {
+            await connector.CheckIncomingTransactions();
+        }
 
-            Console.WriteLine("Catch up phase");
-            // while current height - 10, check each block for incoming tx
-            // Update DB with new block id when done
-
-            Console.WriteLine("Running phase");
-            // Sleep
-            // Check getBlockchainStatus to see if new block
-            // Update DB with new block id
-            Console.WriteLine("Work complete!");
+        private async Task WriteAddAccount()
+        {
+            var account = await connector.AddAccount();
+            Console.WriteLine($"Account {account.Address} added");
         }
     }
 }
