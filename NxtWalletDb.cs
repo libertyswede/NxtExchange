@@ -13,14 +13,14 @@ namespace NxtExchange
             this.filepath = filePath;
         }
 
-        public bool FileExists()
+        public bool IsInitialized()
         {
             return File.Exists(filepath);
         }
 
-        public void InitNewDb(NxtAccount mainAccount, ulong lastBlockId)
+        public void Init(NxtAccount mainAccount, ulong lastBlockId)
         {
-            if (FileExists())
+            if (IsInitialized())
             {
                 return;
             }

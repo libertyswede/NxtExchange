@@ -8,7 +8,6 @@ namespace NxtExchange
         private const string mainAccountSecretPhrase = "abc123";
         private const string nxtServerAddress = "https://node1.ardorcrypto.com/nxt"; //NxtLib.Local.Constants.DefaultNxtUrl;
 
-
         // TODO:
         // * Migrate sqlite wallet to EF7
         // * Use async/await

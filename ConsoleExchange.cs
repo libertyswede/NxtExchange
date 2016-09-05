@@ -9,30 +9,38 @@ namespace NxtExchange
     public class ConsoleExchange
     {
         private readonly NxtWalletDb wallet;
-        private readonly string nxtServerUri;
+        private readonly ServiceFactory serviceFactory;
+        private readonly IBlockService blockService;
+        private readonly IServerInfoService serverInfoService;
 
         public ConsoleExchange(string nxtServerUri, string walletfile, string mainAccountSecretPhrase)
         {
-            this.nxtServerUri = nxtServerUri;
-            wallet = InitWalletFile(walletfile, mainAccountSecretPhrase);
+            serviceFactory = new ServiceFactory(nxtServerUri);
+            blockService = serviceFactory.CreateBlockService();
+            serverInfoService = serviceFactory.CreateServerInfoService();
+
+            wallet = InitWallet(walletfile, mainAccountSecretPhrase);
         }
 
-        private NxtWalletDb InitWalletFile(string walletfile, string mainAccountSecretPhrase)
+        private NxtWalletDb InitWallet(string walletfile, string mainAccountSecretPhrase)
         {
             var wallet = new NxtWalletDb(walletfile);
 
-            if (!wallet.FileExists())
+            if (wallet.IsInitialized())
             {
-                var accountService = new NxtLib.Local.LocalAccountService();
-                var account = accountService.GetAccount(NxtLib.Accounts.AccountIdLocator.BySecretPhrase(mainAccountSecretPhrase));
-                var mainAccount = new NxtAccount
-                {
-                    Address = account.AccountRs,
-                    SecretPhrase = mainAccountSecretPhrase,
-                    IsMainAccount = true
-                };
-                wallet.InitNewDb(mainAccount, NxtLib.Local.Constants.GenesisBlockId);
+                return wallet;
             }
+
+            var accountService = new NxtLib.Local.LocalAccountService();
+            var account = accountService.GetAccount(NxtLib.Accounts.AccountIdLocator.BySecretPhrase(mainAccountSecretPhrase));
+            var mainAccount = new NxtAccount
+            {
+                Address = account.AccountRs,
+                SecretPhrase = mainAccountSecretPhrase,
+                IsMainAccount = true
+            };
+            var blockchainStatus = serverInfoService.GetBlockchainStatus().Result;
+            wallet.Init(mainAccount, blockchainStatus.LastBlockId);
             return wallet;
         }
 
@@ -42,7 +50,6 @@ namespace NxtExchange
 
             var lastBlockId = wallet.GetLastBlockId();
             int lastBlockHeight = 0;
-            var blockService = new BlockService(nxtServerUri);
             try
             {
                 var block = await blockService.GetBlock(BlockLocator.ByBlockId(lastBlockId));
@@ -53,7 +60,7 @@ namespace NxtExchange
             {
                 if (e.Message == "Unknown block")
                 {
-                    Console.WriteLine($"Fork detected, unable to find block with id: {lastBlockId}");
+                    Console.WriteLine($"Fork detected, unable to find block with id: {lastBlockId}. Manual rollback is needed!");
                     Environment.Exit(-1);
                 }
                 else
@@ -62,7 +69,6 @@ namespace NxtExchange
                 }
             }
 
-            var serverInfoService = new ServerInfoService(nxtServerUri);
             var blockchainStatus = await serverInfoService.GetBlockchainStatus();
             var currentBlockHeight = blockchainStatus.NumberOfBlocks - 1;
             var blocksToProcess = currentBlockHeight - lastBlockHeight;
