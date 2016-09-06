@@ -21,8 +21,9 @@ namespace NxtExchange
             var configSettings = ReadConfig();
             var walletFile = configSettings.Single(c => c.Key == "walletFile").Value;
             var nxtServerAddress = configSettings.Single(c => c.Key == "nxtServerAddress").Value;
+            var confirmations = int.Parse(configSettings.Single(c => c.Key == "confirmations").Value);
 
-            var connector = new NxtConnector(new ServiceFactory(nxtServerAddress), walletFile);
+            var connector = new NxtConnector(new ServiceFactory(nxtServerAddress), walletFile, confirmations);
             var exchange = new ConsoleExchange(connector);
             Task.Run(() => exchange.Run()).Wait();
         }

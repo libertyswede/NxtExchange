@@ -12,15 +12,16 @@ namespace NxtExchange
 {
     public class NxtConnector
     {
-        private const int confirmationBlocks = 2;
+        private readonly int confirmations;
         private readonly NxtWalletDb wallet;
         private readonly IBlockService blockService;
         private readonly IServerInfoService serverInfoService;
 
-        public NxtConnector(IServiceFactory serviceFactory, string walletfile)
+        public NxtConnector(IServiceFactory serviceFactory, string walletfile, int confirmations)
         {
             blockService = serviceFactory.CreateBlockService();
             serverInfoService = serviceFactory.CreateServerInfoService();
+            this.confirmations = confirmations;
 
             wallet = InitWallet(walletfile);
         }
@@ -64,11 +65,11 @@ namespace NxtExchange
 
             var blockchainStatus = await serverInfoService.GetBlockchainStatus();
             var currentBlockHeight = blockchainStatus.NumberOfBlocks - 1;
-            var blocksToProcess = Math.Max(0, currentBlockHeight - lastBlockHeight - confirmationBlocks);
+            var blocksToProcess = Math.Max(0, currentBlockHeight - lastBlockHeight - confirmations);
             Console.WriteLine($"Current block height is: {currentBlockHeight} ({blocksToProcess} block(s) to process)");
             var depositAccounts = await wallet.GetAllDepositAccounts();
             var depositAddresses = new HashSet<string>(depositAccounts.Select(a => a.Address));
-            while (currentBlockHeight > lastBlockHeight + confirmationBlocks)
+            while (currentBlockHeight > lastBlockHeight + confirmations)
             {
                 lastBlockHeight++;
                 Console.WriteLine($"Processing block @ height {lastBlockHeight}");

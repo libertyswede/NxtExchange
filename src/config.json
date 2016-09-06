@@ -1,4 +1,5 @@
 {
+    "confirmations": "10",
     "walletFile": "c:\\temp\\nxtexchange\\nxtwallet.db",
     "nxtServerAddress": "http://localhost:7876/nxt"
 }
