@@ -1,13 +1,14 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.PlatformAbstractions;
 using NxtLib;
 
 namespace NxtExchange
 {
     public class Program
     {
-        private const string walletfile = @"c:\temp\nxtexchange\nxtwallet.db";
-        private const string nxtServerAddress = "https://node1.ardorcrypto.com/nxt"; //NxtLib.Local.Constants.DefaultNxtUrl;
-
         // TODO:
         // * Migrate sqlite wallet to EF7
         // * Encrypt wallet. 
@@ -17,9 +18,24 @@ namespace NxtExchange
 
         public static void Main(string[] args)
         {
-            var connector = new NxtConnector(new ServiceFactory(nxtServerAddress), walletfile);
+            var configSettings = ReadConfig();
+            var walletFile = configSettings.Single(c => c.Key == "walletFile").Value;
+            var nxtServerAddress = configSettings.Single(c => c.Key == "nxtServerAddress").Value;
+
+            var connector = new NxtConnector(new ServiceFactory(nxtServerAddress), walletFile);
             var exchange = new ConsoleExchange(connector);
             Task.Run(() => exchange.Run()).Wait();
+        }
+
+        private static IEnumerable<IConfigurationSection> ReadConfig()
+        {
+            var configBuilder = new ConfigurationBuilder();
+            configBuilder.SetBasePath(PlatformServices.Default.Application.ApplicationBasePath);
+            configBuilder.AddJsonFile("config.json");
+            configBuilder.AddJsonFile("config-Development.json", true);
+            var configRoot = configBuilder.Build();
+            var configSettings = configRoot.GetChildren();
+            return configSettings;
         }
     }
 }

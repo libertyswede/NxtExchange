@@ -5,3 +5,4 @@
 # DNX
 project.lock.json
 .vscode/
+config-Development.json
