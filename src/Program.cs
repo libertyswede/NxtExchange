@@ -10,11 +10,12 @@ namespace NxtExchange
     public class Program
     {
         // TODO:
+        // * Genesis time + timestamp + deadline * 60 - check for deposits
         // * Migrate sqlite wallet to EF7
         // * Encrypt wallet. 
+        // * Make NxtConnector thread safe (if needed?)
         //   Need to decide whether to use DataProtection (new dotnet core stuff) described here: https://docs.asp.net/en/latest/security/data-protection/index.html
         //   or just to use AES-256-CBC encryption and let user provide a key.
-        // * Make NxtConnector thread safe (if needed?)
 
         public static void Main(string[] args)
         {
