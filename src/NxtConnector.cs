@@ -7,6 +7,7 @@ using NxtLib.Accounts;
 using NxtLib.Blocks;
 using NxtLib.Local;
 using NxtLib.ServerInfo;
+using static NxtLib.CreateTransactionParameters;
 
 namespace NxtExchange
 {
@@ -16,9 +17,11 @@ namespace NxtExchange
         private readonly NxtWalletDb wallet;
         private readonly IBlockService blockService;
         private readonly IServerInfoService serverInfoService;
+        private readonly IAccountService accountService;
 
         public NxtConnector(IServiceFactory serviceFactory, string walletfile, int confirmations)
         {
+            accountService = serviceFactory.CreateAccountService();
             blockService = serviceFactory.CreateBlockService();
             serverInfoService = serviceFactory.CreateServerInfoService();
             this.confirmations = confirmations;
@@ -108,6 +111,30 @@ namespace NxtExchange
             await wallet.AddAccount(account);
 
             return account;
+        }
+
+        public async Task<List<NxtAccount>> GetAccounts()
+        {
+            return await wallet.GetAllDepositAccounts();
+        }
+
+        public async Task SendMoney(long accountId, string recipientAddress, long amountNqt, string message, string publicKey = null)
+        {
+            var account = await wallet.GetAccount(accountId);
+
+            var parameters = new CreateTransactionBySecretPhrase(true, 1440, NxtLib.Amount.Zero, account.SecretPhrase);
+            if (!string.IsNullOrEmpty(message))
+            {
+                parameters.EncryptedMessage = new MessageToBeEncrypted(message, true, true);
+            }
+            if (!string.IsNullOrEmpty(publicKey))
+            {
+                parameters.RecipientPublicKey = publicKey;
+            }
+            var sendMoneyReply = await accountService.SendMoney(parameters, recipientAddress, Amount.CreateAmountFromNqt(amountNqt));
+
+            account.BalanceNqt -= (sendMoneyReply.Transaction.Amount.Nqt + sendMoneyReply.Transaction.Fee.Nqt);
+            await wallet.UpdateAccountBalance(accountId, account.BalanceNqt);
         }
     }
 }

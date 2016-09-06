@@ -94,6 +94,19 @@ namespace NxtExchange
             return accounts;
         }
 
+        public async Task<NxtAccount> GetAccount(long accountId)
+        {
+            var sql = $"SELECT id, secret_phrase, address, balance_nqt FROM account WHERE id = {accountId}";
+            using (var dbConnection = OpenNewDbConnection())
+            using (var command = new SqliteCommand(sql, dbConnection))
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                await reader.ReadAsync();
+                var account = ParseAccount(reader);
+                return account;
+            }
+        }
+
         private static NxtAccount ParseAccount(SqliteDataReader reader)
         {
             var account = new NxtAccount
